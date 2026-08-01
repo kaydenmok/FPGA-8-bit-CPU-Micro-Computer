@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="register_file_tb_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="register_file_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0.000 ns"></ZoomStartTime>
+      <ZoomEndTime time="43.238 ns"></ZoomEndTime>
+      <Cursor1Time time="67.658 ns"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="190"></NameColumnWidth>
+      <ValueColumnWidth column_width="119"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="11" />
+   <wvobject fp_name="/register_file_tb/clk" type="logic">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/register_file_tb/reset" type="logic">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/register_file_tb/read_addr_a" type="array">
+      <obj_property name="ElementShortName">read_addr_a[2:0]</obj_property>
+      <obj_property name="ObjectShortName">read_addr_a[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/register_file_tb/read_addr_b" type="array">
+      <obj_property name="ElementShortName">read_addr_b[2:0]</obj_property>
+      <obj_property name="ObjectShortName">read_addr_b[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/register_file_tb/write_addr" type="array">
+      <obj_property name="ElementShortName">write_addr[2:0]</obj_property>
+      <obj_property name="ObjectShortName">write_addr[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/register_file_tb/write_data" type="array">
+      <obj_property name="ElementShortName">write_data[7:0]</obj_property>
+      <obj_property name="ObjectShortName">write_data[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/register_file_tb/write_enable" type="logic">
+      <obj_property name="ElementShortName">write_enable</obj_property>
+      <obj_property name="ObjectShortName">write_enable</obj_property>
+   </wvobject>
+   <wvobject fp_name="/register_file_tb/read_data_a" type="array">
+      <obj_property name="ElementShortName">read_data_a[7:0]</obj_property>
+      <obj_property name="ObjectShortName">read_data_a[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/register_file_tb/read_data_b" type="array">
+      <obj_property name="ElementShortName">read_data_b[7:0]</obj_property>
+      <obj_property name="ObjectShortName">read_data_b[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/register_file_tb/dut/registers" type="array">
+      <obj_property name="ElementShortName">registers[0:7][7:0]</obj_property>
+      <obj_property name="ObjectShortName">registers[0:7][7:0]</obj_property>
+      <wvobject fp_name="/register_file_tb/dut/registers[0]" type="array">
+         <obj_property name="ElementShortName">[0][7:0]</obj_property>
+         <obj_property name="ObjectShortName">[0][7:0]</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+      </wvobject>
+      <wvobject fp_name="/register_file_tb/dut/registers[1]" type="array">
+         <obj_property name="ElementShortName">[1][7:0]</obj_property>
+         <obj_property name="ObjectShortName">[1][7:0]</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+      </wvobject>
+      <wvobject fp_name="/register_file_tb/dut/registers[2]" type="array">
+         <obj_property name="ElementShortName">[2][7:0]</obj_property>
+         <obj_property name="ObjectShortName">[2][7:0]</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+      </wvobject>
+      <wvobject fp_name="/register_file_tb/dut/registers[3]" type="array">
+         <obj_property name="ElementShortName">[3][7:0]</obj_property>
+         <obj_property name="ObjectShortName">[3][7:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/register_file_tb/dut/registers[4]" type="array">
+         <obj_property name="ElementShortName">[4][7:0]</obj_property>
+         <obj_property name="ObjectShortName">[4][7:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/register_file_tb/dut/registers[5]" type="array">
+         <obj_property name="ElementShortName">[5][7:0]</obj_property>
+         <obj_property name="ObjectShortName">[5][7:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/register_file_tb/dut/registers[6]" type="array">
+         <obj_property name="ElementShortName">[6][7:0]</obj_property>
+         <obj_property name="ObjectShortName">[6][7:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/register_file_tb/dut/registers[7]" type="array">
+         <obj_property name="ElementShortName">[7][7:0]</obj_property>
+         <obj_property name="ObjectShortName">[7][7:0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/register_file_tb/dut/registers[0]" type="array">
+      <obj_property name="ElementShortName">[0][7:0]</obj_property>
+      <obj_property name="ObjectShortName">[0][7:0]</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+   </wvobject>
+</wave_config>

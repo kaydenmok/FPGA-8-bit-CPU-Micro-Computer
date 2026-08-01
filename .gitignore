@@ -1,0 +1,31 @@
+# Vivado generated folders
+**/.Xil/
+**/*.cache/
+**/*.hw/
+**/*.ip_user_files/
+**/*.runs/
+**/*.sim/
+**/*.gen/
+
+# Vivado temporary and log files
+*.jou
+*.log
+*.str
+*.tmp
+*.wdb
+*.pb
+
+# Generated FPGA outputs
+*.bit
+*.bin
+
+# Python generated files
+__pycache__/
+*.pyc
+
+# VS Code
+.vscode/
+
+# Operating system files
+.DS_Store
+Thumbs.db
