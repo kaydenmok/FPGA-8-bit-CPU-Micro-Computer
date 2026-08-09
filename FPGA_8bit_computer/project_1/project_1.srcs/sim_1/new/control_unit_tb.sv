@@ -34,18 +34,40 @@ module control_unit_tb;
     logic       branch_taken;
     logic       halt;
     
-    control_unit dut(
-        .opcode(opcode),
-        .zero_flag(zero_flag),
-        .negative_flag(negative_flag),
-        .carry_flag(carry_flag),
-        .alu_operation(alu_operation),
-        .register_write_enable(register_write_enable),
-        .writeback_external(writeback_external),
-        .branch_taken(branch_taken),
-        .halt(halt)
-    );    
+    // Memory control
+    logic       memory_write_enable;
+    logic       memory_read_enable;
+
+    // Flag control
+    logic       flag_write_enable;
+
+    // Stack control
+    logic       stack_address_select;
+    logic       stack_decrement_enable;
+    logic       stack_increment_enable;
     
+    
+    control_unit dut(
+    .opcode                 (opcode),
+    .zero_flag              (zero_flag),
+    .negative_flag          (negative_flag),
+    .carry_flag             (carry_flag),
+
+    .alu_operation          (alu_operation),
+    .register_write_enable  (register_write_enable),
+    .writeback_external     (writeback_external),
+    .branch_taken           (branch_taken),
+    .halt                   (halt),
+
+    .memory_write_enable    (memory_write_enable),
+    .memory_read_enable     (memory_read_enable),
+
+    .flag_write_enable      (flag_write_enable),
+
+    .stack_address_select   (stack_address_select),
+    .stack_decrement_enable (stack_decrement_enable),
+    .stack_increment_enable (stack_increment_enable)
+);
     initial begin
         
         // Safe start values
@@ -199,16 +221,45 @@ module control_unit_tb;
         else
             $display("TEST 12 PASSED: HALT");
             
-         // ==== TEST 13 ADD after HALT ====
-         opcode = 5'b00000;
+        // ==== TEST 13 PUSH ====
+        opcode = 5'b11000;
         #10;
 
-        if (halt                  !== 1'b0 ||
-            register_write_enable !== 1'b1 ||
-            branch_taken          !== 1'b0)
-            $error("TEST 13 FAILED: Outputs did not reset after HALT");
+        if (register_write_enable  !== 1'b0 ||
+            writeback_external     !== 1'b0 ||
+            memory_write_enable    !== 1'b1 ||
+            memory_read_enable     !== 1'b0 ||
+            stack_address_select   !== 1'b1 ||
+            stack_decrement_enable !== 1'b1 ||
+            stack_increment_enable !== 1'b0 ||
+            branch_taken           !== 1'b0 ||
+            halt                   !== 1'b0 ||
+            flag_write_enable      !== 1'b0)
+        
+            $error("TEST 13 FAILED: PUSH control signals incorrect");
+
         else
-            $display("TEST 13 PASSED: Outputs reset after HALT");
+            $display("TEST 13 PASSED: PUSH");
+            
+        // ==== TEST 14 POP ====
+        opcode = 5'b11001;
+        #10; 
+        
+        if (register_write_enable  !== 1'b1 ||
+            writeback_external     !== 1'b1 ||
+            memory_write_enable    !== 1'b0 ||
+            memory_read_enable     !== 1'b1 ||
+            stack_address_select   !== 1'b1 ||
+            stack_increment_enable !== 1'b1 ||
+            stack_decrement_enable !== 1'b0 ||
+            branch_taken           !== 1'b0 ||
+            halt                   !== 1'b0 ||
+            flag_write_enable      !== 1'b0)
+
+            $error("TEST 14 FAILED: POP control signals incorrect");
+
+        else
+            $display("TEST 14 PASSED: POP");
 
 
         $display("Control unit testing complete.");

@@ -20,6 +20,8 @@
 //
 // 0xF4 : Pushbuttons
 //
+// 0xF5 : 7-Segment 4-digit display
+//
 // EXAMPLES:
 // STORE R1, 0xF0 -----> LEDs 7-0 Shine the value of R1
 //
@@ -48,7 +50,10 @@ module io_controller(
     output logic [7:0] read_data,
     
     // Tells the CPU whether this address belongs to I/O
-    output logic       io_selected
+    output logic       io_selected,
+    
+    // 7-segment display
+    output logic [7:0] display_value
     
     );
     
@@ -65,7 +70,8 @@ module io_controller(
     always_ff @(posedge clk) begin
         
         if (reset) begin
-            leds <= 16'b0;
+            leds          <= 16'b0;
+            display_value <= 8'b0;
         end
         
         else if (write_enable && io_selected) begin
@@ -74,17 +80,21 @@ module io_controller(
                 
                 // Bottom 8 LEDS
                 8'hF0: begin
-                    leds[7:0] <= write_data;
+                    leds[7:0]     <= write_data;
                 end
                 
                 // Top 8 LEDS
                 8'hF1: begin
-                    leds[15:8] <= write_data;
+                    leds[15:8]    <= write_data;
                 end
                 
-                // Reserved for future implementations
+                // 7-Segment Display
+                8'hF5: begin
+                    display_value <= write_data;
+                end
+                
                 default: begin
-                    leds <= leds;
+                   // Keep previous output values. 
                 end
             endcase
         end
@@ -117,15 +127,15 @@ module io_controller(
                 
                 // Five buttons packed into the lower five bits.
                 //
-                // read_data[0] = center
-                // read_data[1] = up
-                // read_data[2] = down
-                // read_data[3] = left
-                // read_data[4] = right
+                // Center Button used for reset
+                // read_data[0] = up
+                // read_data[1] = down
+                // read_data[2] = left
+                // read_data[3] = right
                 //
-                // Upper three bits are unused                
+                // Upper four bits are unused                
                 8'hF4: begin
-                    read_data = {3'b000, buttons};
+                    read_data = {4'b0000, buttons};
                 end
                 
                 default: begin

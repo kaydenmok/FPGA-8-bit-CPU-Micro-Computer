@@ -89,6 +89,7 @@ module cpu_core_tb;
 // TEST SEQUENCE
 // ============================================================
 
+/*
 initial begin
 
     // Start with reset active.
@@ -268,8 +269,465 @@ initial begin
         "PC remains at address 4 after HALT"
     );
     
+    
     $finish;
  end
+ 
+ 
+ // ================= STACK TESTS FOR PUSH AND POP =======================
+    initial begin
+        // Safe startup
+        reset = 1'b1;
+
+        repeat (2) @(posedge clk);
+
+        @(negedge clk);
+        reset = 1'b0;
+
+        #1;
+     
+     // ==== PC = 0, LOADI R2, 42 ====
+     check(
+        debug_pc == 8'd0,
+        "PC starts at address 0"
+    );
+
+    check(
+        dut.external_write_enable == 1'b1,
+        "LOADI enables register writeback"
+    );
+
+
+    // Execute LOADI
+    @(posedge clk);
+    #1;
+    
+    // ==== PC = 1, PUSH R1 ====
+    check(
+        debug_pc == 8'd1,
+        "PC increments to PUSH instruction"
+    );
+
+    check(
+        debug_source_a_data == 8'd42,
+        "PUSH reads 42 from R1"
+    );
+
+    check(
+        dut.stack_address == 8'd239,
+        "Stack Pointer starts at 239"
+    );
+
+    check(
+        dut.stack_address_select == 1'b1,
+        "PUSH selects Stack Pointer as RAM address"
+    );
+
+    check(
+        dut.memory_address == 8'd239,
+        "RAM address comes from Stack Pointer"
+    );
+
+    check(
+        dut.memory_write_enable == 1'b1,
+        "PUSH enables memory writing"
+    );
+
+    check(
+        dut.ram_write_enable == 1'b1,
+        "PUSH enables Data RAM write"
+    );
+
+
+    // Execute PUSH
+    @(posedge clk);
+    #1;
+    
+    // VERIFY PUSH RESULT 
+    check(
+        dut.data_memory_unit.memory[239] == 8'd42,
+        "PUSH stores 42 into RAM[239]"
+    );
+
+    check(
+        dut.stack_address == 8'd238,
+        "PUSH decrements Stack Pointer to 238"
+    );
+    
+    // ==== PC = 2, LOAD R1, 0 ====
+    // Clear the old value of R1 so POP can restore the original
+
+    check(
+        debug_pc == 8'd2,
+        "PC increments to second LOADI instruction"
+    );
+
+    // Execute LOADI R1, 0
+    @(posedge clk);
+    #1;
+    
+    // Verify R1 was cleared
+    check(
+        debug_source_a_data == 8'd0,
+        "R1 was cleared before POP"
+    );
+    
+    // ==== PC = 3, POP R1 ====
+    check(
+        debug_pc == 8'd3,
+        "PC increments to POP instruction"
+    );
+
+    check(
+        dut.stack_address == 8'd238,
+        "Stack Pointer is 238 before POP"
+    );
+
+    check(
+        dut.stack_address_select == 1'b1,
+        "POP selects Stack Pointer as RAM address"
+    );
+
+    check(
+        dut.stack_increment_enable == 1'b1,
+        "POP enables Stack Pointer increment"
+    );
+
+    check(
+        dut.memory_read_enable == 1'b1,
+        "POP enables memory reading"
+    );
+
+    check(
+        dut.memory_write_enable == 1'b0,
+        "POP does not write into RAM"
+    );
+
+    check(
+        dut.register_write_enable == 1'b1,
+        "POP enables destination register writing"
+    );
+
+    check(
+        dut.writeback_external == 1'b1,
+        "POP selects external/RAM writeback"
+    );
+    
+    check(
+        dut.memory_address == 8'd239,
+        "POP reads from RAM address 239"
+    );
+
+    check(
+        dut.memory_read_data == 8'd42,
+        "POP receives 42 from RAM[239]"
+    );
+
+    check(
+        dut.external_write_data == 8'd42,
+        "POP routes RAM value 42 to register writeback"
+    );
+
+    check(
+        dut.destination_addr == 3'd1,
+        "POP selects R1 as destination register"
+    );
+
+    check(
+        dut.external_write_enable == 1'b1,
+        "POP enables external writeback into R1"
+    );
+
+
+    // Execute POP
+    @(posedge clk);
+    #1;
+    
+    // PC = 4
+    // STORE R1, 20
+
+    check(
+        debug_pc == 8'd4,
+        "PC increments to STORE instruction"
+    );
+
+    check(
+        debug_source_a_data == 8'd42,
+        "STORE reads restored value 42 from R1"
+    );
+
+    // Execute STORE
+    @(posedge clk);
+    #1;
+
+    // Now verify RAM[20]
+    check(
+        dut.data_memory_unit.memory[20] == 8'd42,
+        "POP successfully restored 42 into R1"
+    );
+    */
+    // ============================================================
+    // FULL CPU CALL + RET TEST
+    // ============================================================
+
+    initial begin
+
+    // Safe startup
+    reset = 1'b1;
+
+    repeat (2) @(posedge clk);
+
+    @(negedge clk);
+    reset = 1'b0;
+
+    #1;
+
+
+    // --------------------------------------------------------
+    // PC = 0
+    // LOADI R1, 5
+    // --------------------------------------------------------
+
+    check(
+        debug_pc == 8'd0,
+        "PC starts at address 0"
+    );
+
+    check(
+        dut.external_write_enable == 1'b1,
+        "LOADI enables external register writeback"
+    );
+
+    // Execute LOADI R1, 5
+    @(posedge clk);
+    #1;
+
+
+    // --------------------------------------------------------
+    // PC = 1
+    // CALL 5
+    // --------------------------------------------------------
+
+    check(
+        debug_pc == 8'd1,
+        "PC increments to CALL instruction"
+    );
+
+    check(
+        dut.call_enable == 1'b1,
+        "CALL enable becomes active"
+    );
+
+    check(
+        dut.stack_address_select == 1'b1,
+        "CALL selects Stack Pointer as RAM address"
+    );
+
+    check(
+        dut.stack_decrement_enable == 1'b1,
+        "CALL enables Stack Pointer decrement"
+    );
+
+    check(
+        dut.memory_write_enable == 1'b1,
+        "CALL enables RAM writing"
+    );
+
+    check(
+        dut.memory_address == 8'd239,
+        "CALL uses stack address 239"
+    );
+
+    check(
+        dut.memory_write_data == 8'd2,
+        "CALL prepares return address PC + 1"
+    );
+
+
+    // Execute CALL
+    @(posedge clk);
+    #1;
+
+
+    // --------------------------------------------------------
+    // VERIFY CALL RESULT
+    // --------------------------------------------------------
+
+    check(
+        dut.data_memory_unit.memory[239] == 8'd2,
+        "CALL stores return address 2 in RAM[239]"
+    );
+
+    check(
+        dut.stack_address == 8'd238,
+        "CALL decrements Stack Pointer to 238"
+    );
+
+    check(
+        debug_pc == 8'd5,
+        "CALL jumps to subroutine address 5"
+    );
+
+
+    // --------------------------------------------------------
+    // PC = 5
+    // INC R1, R1
+    // --------------------------------------------------------
+
+    check(
+        debug_source_a_data == 8'd5,
+        "INC reads value 5 from R1"
+    );
+
+    check(
+        debug_alu_result == 8'd6,
+        "INC calculates R1 + 1 = 6"
+    );
+
+    // Execute INC
+    @(posedge clk);
+    #1;
+
+
+    // --------------------------------------------------------
+    // PC = 6
+    // RET
+    // --------------------------------------------------------
+
+    check(
+        debug_pc == 8'd6,
+        "PC increments to RET instruction"
+    );
+
+    check(
+        dut.ret_enable == 1'b1,
+        "RET enable becomes active"
+    );
+
+    check(
+        dut.stack_address_select == 1'b1,
+        "RET selects Stack Pointer as RAM address"
+    );
+
+    check(
+        dut.stack_increment_enable == 1'b1,
+        "RET enables Stack Pointer increment"
+    );
+
+    check(
+        dut.memory_read_enable == 1'b1,
+        "RET enables RAM reading"
+    );
+
+    check(
+        dut.memory_address == 8'd239,
+        "RET reads return address from RAM[239]"
+    );
+
+    check(
+        dut.memory_read_data == 8'd2,
+        "RET receives saved return address 2"
+    );
+
+    check(
+        dut.pc_load_address == 8'd2,
+        "RET routes saved return address to Program Counter"
+    );
+
+
+    // Execute RET
+    @(posedge clk);
+    #1;
+
+
+    // --------------------------------------------------------
+    // VERIFY RET RESULT
+    // --------------------------------------------------------
+
+    check(
+        dut.stack_address == 8'd239,
+        "RET increments Stack Pointer back to 239"
+    );
+
+    check(
+        debug_pc == 8'd2,
+        "RET returns execution to address 2"
+    );
+
+
+    // --------------------------------------------------------
+    // PC = 2
+    // LOADI R2, 20
+    // --------------------------------------------------------
+
+    check(
+        dut.destination_addr == 3'd2,
+        "LOADI selects R2 as destination"
+    );
+
+    // Execute LOADI R2, 20
+    @(posedge clk);
+    #1;
+
+
+    // --------------------------------------------------------
+    // PC = 3
+    // HALT
+    // --------------------------------------------------------
+
+    check(
+        debug_pc == 8'd3,
+        "PC increments to HALT instruction"
+    );
+
+    check(
+        halt == 1'b1,
+        "HALT becomes active"
+    );
+
+
+    // --------------------------------------------------------
+    // VERIFY FINAL CPU STATE
+    // --------------------------------------------------------
+    //
+    // We use the datapath register file directly here because
+    // R1 and R2 are not necessarily selected by the HALT
+    // instruction's source fields.
+    //
+    // If your register array has a different internal name,
+    // change "registers" below to match your register_file.sv.
+    // --------------------------------------------------------
+
+    check(
+        dut.datapath_unit.register_file_instance.registers[1] == 8'd6,
+        "Subroutine leaves R1 equal to 6"
+    );
+
+    check(
+        dut.datapath_unit.register_file_instance.registers[2] == 8'd20,
+        "Main program continues after RET and loads 20 into R2"
+    );
+
+    check(
+        dut.stack_address == 8'd239,
+        "Stack Pointer returns to starting address"
+    );
+
+
+    // Confirm HALT freezes the PC.
+    repeat (3) @(posedge clk);
+    #1;
+
+    check(
+        debug_pc == 8'd3,
+        "PC remains frozen after HALT"
+        );
+    
+    
+    $finish;
+end
+        
+    
      
      
      

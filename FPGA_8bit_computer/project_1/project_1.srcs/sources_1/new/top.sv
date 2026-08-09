@@ -29,15 +29,20 @@ module top(
     input logic        btnL,
     input logic        btnR,
     
-    output logic [15:0] led
+    output logic [15:0] led,
+    output logic [6:0]  seg,
+    output logic [3:0]  an
+    
     );
     
     // ========================== INTERNAL SIGNALS =================================
     
     logic       reset;
     
-    // Pack the five buttons into the 5bit format expected by cpu_core / io_controller
-    logic [4:0] buttons;
+    // Pack the four buttons into the 5bit format expected by cpu_core / io_controller
+    logic [3:0] buttons;
+    
+    logic [7:0] display_value;
     
     // Debug signals from cpu_core outputs 
     logic        halt;
@@ -52,20 +57,17 @@ module top(
     
     // Same format from io_controller
     
-    assign buttons[0] = btnC;
-    assign buttons[1] = btnU;
-    assign buttons[2] = btnD;
-    assign buttons[3] = btnL;
-    assign buttons[4] = btnR;
+    // assign buttons[0] = btnC; // Reserved for reset
+    assign buttons[0] = btnU;
+    assign buttons[1] = btnD;
+    assign buttons[2] = btnL;
+    assign buttons[3] = btnR;
     
     // ================================== RESET =======================================
     
-    // For now sw[15] will be reset but later will add an external reset button
-    //
-    // sw15 ON -> held in reset
-    // sw15 OFF -> runs normally
+    // For now button Center is used for reset
     
-    assign reset = sw[15];
+    assign reset = btnC;
     
     // ================================== CPU CORE =====================================
     
@@ -80,6 +82,7 @@ module top(
 
         // Physical FPGA output
         .leds                (led),
+        .display_value       (display_value),
 
         // Debug outputs
         .halt                (halt),
@@ -90,6 +93,14 @@ module top(
         .debug_source_b_data (debug_source_b_data)
 
     );
+    
+    seven_segment_display display_unit (
+        .clk   (clk),
+        .reset (reset),
+        .value (display_value),
+        .seg   (seg),
+        .an    (an)
+        );
 
 endmodule
 

@@ -72,11 +72,13 @@ module cpu_core(
     
     // FPGA inputs
     input logic [15:0]  switches,
-    input logic [4:0]   buttons,
+    input logic [3:0]   buttons,
     
     // FPGA outputs
     output logic [15:0] leds,
     
+    // Seven Segment Display
+    output logic [7:0]  display_value,
     // Debug outputs make simulation and later board testing easier.
     output logic        halt,
     output logic [7:0]  debug_pc,
@@ -86,6 +88,12 @@ module cpu_core(
     output logic [7:0]  debug_source_b_data
    
     );
+    
+    // These registers preserve the result of the most recent instruction
+    // that was allowed to update the CPU status flags.
+    logic stored_zero_flag;
+    logic stored_negative_flag;
+    logic stored_carry_flag;
  
  // Outside Module, are internal and only this module can see them
  // Like private fields
@@ -95,6 +103,9 @@ module cpu_core(
     logic [7:0]  pc; // 8 bits wide address allowing 0 - 255
     logic [15:0] instruction; // Each instruction stored in memory is 16 bits
     logic        pc_increment_enable; // Allows PC to increment normally
+    
+    logic [7:0]  pc_load_address; // For RET address posibility
+    logic        pc_load_enable;  
     
     // ======================== INSTRUCTION DECODER SIGNALS ==============================
     
@@ -115,13 +126,15 @@ module cpu_core(
     logic       writeback_external; // Controls source of data written into register
                                     // 0 = ALU result    1 = External/Immediate Data
     logic       branch_taken; // HIGH when a jump or conditional branch shoulld occur.
-    
+    logic       flag_write_enable; // HIGH when a flag is needed to be stored
     // =============================== MEMORY SIGNALS =====================================
     
     logic [7:0] memory_read_data;
     logic       memory_write_enable;
     logic       memory_read_enable;
     logic [7:0] external_write_data;
+    
+    logic [7:0] memory_write_data;
     
     // ============================= IO CONTROLLER SIGNALS ================================
     
@@ -131,7 +144,7 @@ module cpu_core(
     logic       ram_write_enable;
     logic       io_write_enable;
     
-    
+    logic       display_value;
     
     // ========================== DATAPATH OUTPUT SIGNALS =================================
     
@@ -142,6 +155,8 @@ module cpu_core(
     logic [7:0] alu_result; // Result produced by ALU
     
     // ALU flags
+    // The datapath produces temporary combinational flags for the
+    // instruction currently passing through the ALU.
     logic       carry;
     logic       zero;
     logic       negative;
@@ -150,15 +165,27 @@ module cpu_core(
     logic external_write_enable;
     logic alu_write_enable;
     
+    // ========================== STACK POINTER SIGNALS ==================================
+    
+    logic [7:0] stack_address;
+    logic [7:0] memory_address;
+    
+    logic       stack_increment_enable;
+    logic       stack_decrement_enable;
+    logic       stack_address_select;
+    
+    logic       call_enable;
+    logic       ret_enable;
+    
     // ========================== INTERAL CONNECTION LOGIC ===============================
     
     // During normal execution increment the PC.
     // DO NOT increment when:
     // 1. HALT is active OR 2. A branch is being taken
     //
-    // When branch_taken is high, the PC loads branch_address instead
+    // When pc_load_enable is high, the PC loads the address instead
     
-    assign pc_increment_enable = !halt && !branch_taken; 
+    assign pc_increment_enable = !halt && !pc_load_enable; 
     
     // Generate the datapath's two separate write-enable signals from the control unit
     // generate register-write signal
@@ -194,6 +221,55 @@ module cpu_core(
     // Need to have signals to control when STORE goes to data memory or I/O
     assign ram_write_enable = memory_write_enable && !io_selected;
     assign io_write_enable  = memory_write_enable && io_selected; 
+    
+    
+    // Data RAM can be accessed in two ways:
+    // 1. Normal instructions (LOAD/STORE), use the address encoded in the instruction
+    // 2. Stack instructions (PUSH/POP), use the current Stack Pointer instead.
+    // This multiplexer selects which address is sent to Data RAM
+    // Additionally POP must take from the address: current stack pointer + 1 
+    always_comb begin
+        // Default: Use address in instruction
+        memory_address = address_or_immediate;
+        
+        // Stack instruction access RAM using current stack pointer.
+        if (stack_address_select) begin
+            // PUSH uses current stack address
+            if (stack_decrement_enable) begin
+                memory_address = stack_address;
+            end
+            // POP uses the previously used stack location
+            else if (stack_increment_enable) begin
+                memory_address = stack_address + 8'd1;
+            end
+            
+        end
+    end
+    
+    // Must increment PC when call is run so that the return goes to the next instruction
+    always_comb begin
+        // Normal STORE and PUSH write register data
+        memory_write_data = source_a_data;
+        
+        // CALL stores the address of the instruction immediately
+        // following CALL so RET knows where execution should resume.
+        if(call_enable) begin
+            memory_write_data = pc + 8'b1;
+        end
+    end
+    
+    // PC can recieve addresses in two ways.
+    // 1. From JMP/Conditional Branching/CALL  --> branch_address
+    // 2. From RET                             --> memory_read_data
+    always_comb begin
+        // Normal Branching and CALL
+        pc_load_address = branch_address;
+        if(ret_enable) begin
+            pc_load_address = memory_read_data;
+        end
+    end
+    // Jump to a address when branch_taken OR ret_enable are HIGH
+    assign pc_load_enable = branch_taken || ret_enable;
  
     // =============================== DEBUG OUTPUTS  ====================================
     
@@ -205,15 +281,32 @@ module cpu_core(
      assign debug_alu_result = alu_result;
      assign debug_source_a_data = source_a_data;
      assign debug_source_b_data = source_b_data;
+     
+    // ================================ FLAG LOGIC =======================================
+    
+    // Only update the stored CPU flags when flag_write_enable is active.
+    // This prevents instructions that should not affect flags from overwriting them.
+    always_ff @(posedge clk) begin
+        if (reset) begin
+            stored_zero_flag     <= 1'b0;
+            stored_negative_flag <= 1'b0;
+            stored_carry_flag    <= 1'b0;
+        end
+        else if (flag_write_enable) begin
+            stored_zero_flag     <= zero;
+            stored_negative_flag <= negative;
+            stored_carry_flag    <= carry;
+        end
+    end          
     
     // ============================ MODULE INSTANCES =====================================
     
     program_counter pc_unit (
         .clk                (clk),
         .reset              (reset),
-        .load_enable        (branch_taken),
+        .load_enable        (pc_load_enable),
         .increment_enable   (pc_increment_enable),
-        .load_address       (branch_address),
+        .load_address       (pc_load_address),
         .pc                 (pc)
     );
     
@@ -235,17 +328,23 @@ module cpu_core(
     
     control_unit control_unit_instance (
         .opcode                (opcode),
-        .zero_flag             (zero),
-        .negative_flag         (negative),
-        .carry_flag            (carry),
+        .zero_flag             (stored_zero_flag),
+        .negative_flag         (stored_negative_flag),
+        .carry_flag            (stored_carry_flag),
 
         .alu_operation         (alu_operation),
         .register_write_enable (register_write_enable),
+        .flag_write_enable     (flag_write_enable),
         .writeback_external    (writeback_external),
         .branch_taken          (branch_taken),
         .halt                  (halt),
         .memory_write_enable   (memory_write_enable),
-        .memory_read_enable    (memory_read_enable)
+        .memory_read_enable    (memory_read_enable),
+        .stack_address_select  (stack_address_select),
+        .stack_decrement_enable(stack_decrement_enable),
+        .stack_increment_enable(stack_increment_enable),
+        .call_enable           (call_enable),
+        .ret_enable            (ret_enable)
     );
     
     datapath datapath_unit (
@@ -272,9 +371,9 @@ module cpu_core(
     data_memory_file data_memory_unit (
         .clk          (clk),
     // LOAD and STORE use the instruction's 8-bit address field.
-        .address      (address_or_immediate),
+        .address      (memory_address),
     // STORE writes the selected source register into RAM.
-        .write_data   (source_a_data),
+        .write_data   (memory_write_data),
 
         .write_enable (ram_write_enable),
         
@@ -288,7 +387,7 @@ module cpu_core(
     .reset        (reset),
 
     // Memory-mapped address being accessed.
-    .address      (address_or_immediate),
+    .address      (memory_address),
 
     // STORE sends the selected register value to the I/O controller.
     .write_data   (source_a_data),
@@ -310,8 +409,19 @@ module cpu_core(
     .read_data    (io_read_data),
 
     // HIGH when address is within the memory-mapped I/O region.
-    .io_selected  (io_selected)
+    .io_selected  (io_selected),
+    
+    // 7-segment display output
+    .display_value(display_value)
 
+);
+
+    stack_pointer stack_pointer_unit (
+    .clk              (clk),
+    .reset            (reset),
+    .decrement_enable (stack_decrement_enable),
+    .increment_enable (stack_increment_enable),
+    .stack_address    (stack_address)
 );
     
 endmodule

@@ -42,6 +42,12 @@ package isa_pkg;
         // Planned I/O instructions.
         // We can define them now even if their hardware is added later.
         OP_IN    = 5'b10110,
-        OP_OUT   = 5'b10111;
+        OP_OUT   = 5'b10111,
+        
+        OP_PUSH  = 5'b11000,
+        OP_POP   = 5'b11001,
+        
+        OP_CALL  = 5'b11010,
+        OP_RET   = 5'b11011;
 
 endpackage

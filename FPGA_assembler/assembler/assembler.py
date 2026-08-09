@@ -37,12 +37,19 @@ OPCODES = {
 
     "IN":    0b10110,
     "OUT":   0b10111,
+
+    "PUSH":  0b11000,
+    "POP":   0b11001,
+
+    "CALL":  0b11010,
+    "RET":   0b11011
 }
 
 R_TYPE = {"ADD", "SUB", "AND", "OR", "XOR", "TEST"}
 U_TYPE = {"NOT", "INC", "DEC", "SHL", "SHR"}
-B_TYPE = {"JMP", "JZ", "JNZ", "JC", "JN"}
-SYSTEM_TYPE = {"NOP", "HALT"}
+T_TYPE = {"PUSH", "POP"}
+B_TYPE = {"JMP", "JZ", "JNZ", "JC", "JN", "CALL"}
+SYSTEM_TYPE = {"NOP", "HALT", "RET"}
 
 # Token is the function input which is a string ("R3" for example)
 def parse_register(token: str) -> int:
@@ -140,9 +147,35 @@ def encode_instruction(mnemonic: str, operands: list[str]) -> int:
     # U-TYPE format:
     # [15:11] opcode | [10:8] Destination | [7:5] SourceA | [4:0] Extra
     # Example: NOT R3, R1
+    # PUSH and POP implemented here as they can work with the same format as U-TYPE instructions
     #-------------------------------------------------------------------------------------
 
-    if mnemonic in U_TYPE:
+    if mnemonic in U_TYPE or mnemonic in T_TYPE:
+
+        if mnemonic == "PUSH":
+            # ensure exactly one operand for PUSH and POP
+            if len(operands) != 1:
+                raise ValueError(
+                    f"{mnemonic} requires: source register"
+                )
+
+            destination = 0 # PUSH only needs a source register
+            source_a = parse_register(operands[0])
+
+            return (opcode << 11) | (destination << 8) | (source_a << 5)
+
+        if mnemonic == "POP":
+            # ensure exactly one operand for PUSH and POP
+            if len(operands) != 1:
+                raise ValueError(
+                    f"{mnemonic} requires: destination register"
+                )
+
+            destination = parse_register(operands[0])
+            source_a = 0  # For POP only destination is needed
+
+            return (opcode << 11) | (destination << 8) | (source_a << 5)
+        
         # ensure exactly two operands for U-TYPES
         if len(operands) != 2:
             raise ValueError(
@@ -161,6 +194,7 @@ def encode_instruction(mnemonic: str, operands: list[str]) -> int:
     #-------------------------------------------------------------------------------------
 
     if mnemonic in B_TYPE:
+        
         # ensure exactly one operand for B-TYPES
         if len(operands) != 1:
             raise ValueError(
@@ -324,6 +358,34 @@ def assemble_file(input_path: Path, output_path: Path) -> None:
     print(f"\nAssembled {len(output_lines)} instructions.")
     print(f"Output written to: {output_path}")
 
+def choose_program(assembler_folder: Path) -> Path:
+    """
+    Ask user which assembly program to assembler.
+    Returns full path to the selected .asm file.
+    """
+
+    print()
+    print("FPGA 8-Bit Assembler - Choose a program to assemble:")
+    print("=" * 53)
+    print("1. Calculator")
+    print("2. Snake Game")
+    print()
+
+    choice = input("Choose a program: ")
+
+    if choice == "1":
+        input_path = assembler_folder / "calculator.asm"
+
+    elif choice == "2":
+        input_path = assembler_folder / "snake.asm"
+
+    else:
+        raise ValueError("Invalid selection. Please enter 1 or 2.")
+
+    return input_path
+
+
+
 def main() -> None:
     """
     Main function to assemble a file.
@@ -332,8 +394,8 @@ def main() -> None:
     # Determine the folder where the assembler.py file is located
     assembler_folder = Path(__file__).parent
 
-    # Define the input and output file paths relative to the assembler folder
-    input_path = assembler_folder / "program.asm"
+    # Ask the user which assembly program should be assembled.
+    input_path = choose_program(assembler_folder)
 
     # Full path to Vivado Source Folder
     vivado_source_folder = Path(r"C:\Users\kayde\MicroCompAndAssembler\FPGA_8bit_computer\project_1\project_1.srcs\sources_1\new")
