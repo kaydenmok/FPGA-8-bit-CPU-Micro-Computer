@@ -107,3 +107,15 @@ set_property IOSTANDARD LVCMOS33 [get_ports {an[2]}]
 
 set_property PACKAGE_PIN W4 [get_ports {an[3]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {an[3]}]
+
+
+## UART ##
+# PC -> FPGA
+# FPGA receives this signal
+set_property PACKAGE_PIN B18 [get_ports uart_rx]
+set_property IOSTANDARD LVCMOS33 [get_ports uart_rx]
+
+# FPGA -> PC
+# FPGA transmits this signal
+set_property PACKAGE_PIN A18 [get_ports uart_tx]
+set_property IOSTANDARD LVCMOS33 [get_ports uart_tx]

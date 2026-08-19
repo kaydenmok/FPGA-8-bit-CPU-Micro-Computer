@@ -1,7 +1,15 @@
 Current Milestone:
-• Fully functional custom 8-bit CPU
-• Instruction ROM
-• Data RAM with LOAD/STORE instructions
-• Memory-mapped I/O
-• Python assembler
-• Basys 3 FPGA deployment
+- Fully functional custom 8-bit CPU
+- Custom 16-bit instruction set
+- Instruction ROM + Data RAM
+- Memory-mapped I/O system
+- Stack with PUSH/POP
+- Subtroutines CALL/RET
+- UART implementation
+- 8-byte FIFO UART receiver
+- 7-segment display controller
+- LEDs, switches, and button I/O
+- Custom Python assembler
+- Testbenches for each module
+- Succesfully deployed to BASYS3 FPGA
+- Simple Calculator Demo

@@ -296,6 +296,13 @@ def clean_line(line: str) -> str:
     # Strip leading and trailing whitespace
     return line.strip()
 
+def is_label(line: str) -> bool:
+    """
+    Check if a line is a label (ends with a colon).
+    """
+    line = clean_line(line)
+    return line.endswith(':')
+
 def parse_line(line:str) -> tuple[str,list[str]] | None:
     """
     Convert a line such as ADD R3, R1, R2
@@ -321,14 +328,33 @@ def assemble_file(input_path: Path, output_path: Path) -> None:
     """
     Assemble every instruction in the input file and write
     one 16-bit instruction per line in the output file.
+
+    Uses two passes:
+        PASS 1: Find all labels and their corresponding instruction numbers.
+        PASS 2: Assemble instructions and replace label operands with their corresponding instruction numbers.
     """
 
     output_lines: list[str] = []
+    # Python dictionary to connect label to instruction number
+    # Example: {"LOOP": 5, "END": 10}
+    labels: dict[str, int] = {}
 
     # Read the input file and split it into lines, 
     # utf-8 encoding is used to support a wide range of characters including symbols and emojis
     source_lines = input_path.read_text(encoding="utf-8").splitlines() 
 
+
+
+    # ========================= PASS 1: Find all labels ==========================
+
+    instruction_address = 0
+    # To be finished
+
+
+
+
+
+    # ======================== PASS 2: Assemble instructions ==========================
     for line_number, source_line in enumerate(source_lines, start=1):
         parsed = parse_line(source_line)
 

@@ -29,10 +29,12 @@ module top(
     input logic        btnL,
     input logic        btnR,
     
+    input logic        uart_rx,
+    output logic       uart_tx,
+    
     output logic [15:0] led,
     output logic [6:0]  seg,
     output logic [3:0]  an
-    
     );
     
     // ========================== INTERNAL SIGNALS =================================
@@ -52,6 +54,22 @@ module top(
     logic [7:0]  debug_source_a_data;
     logic [7:0]  debug_source_b_data;
     
+    // UART SIGNALS
+    
+    // Byte CPU wants to transmit.
+    logic [7:0] uart_tx_data;
+    
+    // one clock pulse telling transmitter to start
+    logic       uart_tx_start;
+    
+    // HIGH while transmitter is currently sending a byte.
+    logic       uart_tx_busy;
+    
+    // Most recently received UART byte
+    logic [7:0] uart_rx_data;
+    
+    // One-clock pulse when receiver completes a byte.
+    logic       uart_rx_valid;
     
     // ============================ BUTTON MAPPING ===================================
     
@@ -90,17 +108,59 @@ module top(
         .debug_instruction   (debug_instruction),
         .debug_alu_result    (debug_alu_result),
         .debug_source_a_data (debug_source_a_data),
-        .debug_source_b_data (debug_source_b_data)
+        .debug_source_b_data (debug_source_b_data),
+        
+        // UART inputs
+        .uart_tx_busy        (uart_tx_busy),
+        .uart_rx_data        (uart_rx_data),
+        .uart_rx_valid       (uart_rx_valid),
+        
+        // UART outputs
+        .uart_tx_data        (uart_tx_data),
+        .uart_tx_start       (uart_tx_start)
+
 
     );
-    
+    // ============================ 7SEG DISPLAY ====================================
     seven_segment_display display_unit (
         .clk   (clk),
         .reset (reset),
         .value (display_value),
         .seg   (seg),
         .an    (an)
-        );
+    );
+        
+        
+    // ========================== UART TRANSMITTER =================================
+
+
+    uart_transmitter uart_tx_unit (
+
+        .clk     (clk),
+        .reset   (reset),
+
+        .data_in (uart_tx_data),
+        .start   (uart_tx_start),
+
+        .tx      (uart_tx),
+        .busy    (uart_tx_busy)
+
+    );
+
+
+    
+    // =========================== UART RECEIVER ===================================
+
+    uart_receiver uart_rx_unit (
+
+        .clk        (clk),
+        .reset      (reset),
+
+        .rx         (uart_rx),
+
+        .data_out   (uart_rx_data),
+        .data_valid (uart_rx_valid)
+    );
 
 endmodule
 

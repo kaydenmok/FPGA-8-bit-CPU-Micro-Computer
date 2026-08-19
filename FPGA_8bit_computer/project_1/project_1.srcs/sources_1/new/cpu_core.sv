@@ -74,11 +74,21 @@ module cpu_core(
     input logic [15:0]  switches,
     input logic [3:0]   buttons,
     
+    // UART inputs
+    input logic         uart_tx_busy,
+    input logic [7:0]   uart_rx_data,
+    input logic         uart_rx_valid,
+   
+    // UART outputs     
+    output logic [7:0]  uart_tx_data,
+    output logic        uart_tx_start,
+    
     // FPGA outputs
     output logic [15:0] leds,
     
     // Seven Segment Display
     output logic [7:0]  display_value,
+    
     // Debug outputs make simulation and later board testing easier.
     output logic        halt,
     output logic [7:0]  debug_pc,
@@ -143,8 +153,6 @@ module cpu_core(
    
     logic       ram_write_enable;
     logic       io_write_enable;
-    
-    logic       display_value;
     
     // ========================== DATAPATH OUTPUT SIGNALS =================================
     
@@ -383,38 +391,39 @@ module cpu_core(
     
     io_controller io_controller_unit (
 
-    .clk          (clk),
-    .reset        (reset),
+    .clk           (clk),
+    .reset         (reset),
 
-    // Memory-mapped address being accessed.
-    .address      (memory_address),
+    // CPU memory-mapped access
+    .address       (memory_address),
+    .write_data    (source_a_data),
+    .write_enable  (io_write_enable),
+    .read_enable   (memory_read_enable),
 
-    // STORE sends the selected register value to the I/O controller.
-    .write_data   (source_a_data),
+    // FPGA inputs
+    .switches      (switches),
+    .buttons       (buttons),
 
-    // Only HIGH when STORE targets an I/O address.
-    .write_enable (io_write_enable),
+    // UART inputs
+    .uart_tx_busy  (uart_tx_busy),
+    .uart_rx_data  (uart_rx_data),
+    .uart_rx_valid (uart_rx_valid),
 
-    // LOAD allows hardware values to be read.
-    .read_enable  (memory_read_enable),
+    // FPGA outputs
+    .leds           (leds),
 
-    // Physical FPGA inputs.
-    .switches     (switches),
-    .buttons      (buttons),
+    // CPU readback
+    .read_data      (io_read_data),
+    .io_selected    (io_selected),
 
-    // Physical FPGA output.
-    .leds         (leds),
+    // Seven-segment
+    .display_value  (display_value),
 
-    // Data returned to CPU during an I/O LOAD.
-    .read_data    (io_read_data),
+    // UART outputs
+    .uart_tx_data   (uart_tx_data),
+    .uart_tx_start  (uart_tx_start)
 
-    // HIGH when address is within the memory-mapped I/O region.
-    .io_selected  (io_selected),
-    
-    // 7-segment display output
-    .display_value(display_value)
-
-);
+    );
 
     stack_pointer stack_pointer_unit (
     .clk              (clk),
@@ -422,6 +431,6 @@ module cpu_core(
     .decrement_enable (stack_decrement_enable),
     .increment_enable (stack_increment_enable),
     .stack_address    (stack_address)
-);
+    );
     
 endmodule

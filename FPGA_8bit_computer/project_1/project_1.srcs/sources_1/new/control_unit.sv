@@ -221,7 +221,7 @@ module control_unit(
             end
             
             5'b11010: begin // CALL
-            // CALL saves the return address onto the stack
+            // CALL saves the return address onto the stack and jumps to a given address
                 memory_write_enable   = 1'b1;
                 stack_address_select  = 1'b1;
                 // Pushing onto the stack: must decrement the pointer
