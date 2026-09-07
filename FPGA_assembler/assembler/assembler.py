@@ -42,7 +42,11 @@ OPCODES = {
     "POP":   0b11001,
 
     "CALL":  0b11010,
-    "RET":   0b11011
+    "RET":   0b11011,
+
+    "LOADR": 0b11100,
+
+    "BANK" : 0b11110
 }
 
 R_TYPE = {"ADD", "SUB", "AND", "OR", "XOR", "TEST"}
@@ -215,6 +219,9 @@ def encode_instruction(mnemonic: str, operands: list[str]) -> int:
     # LOADI format:
     # [15:11] opcode | [10:8] Destination | [7:0] Immediate Value
     # Example: LOADI R3, 42
+    # BANK format:
+    # [15:11] opcode | [10:8] Unused      | [7:0] Bank Number 
+    # Example: BANK 2
     #-------------------------------------------------------------------------------------
 
     if mnemonic == "LOADI":
@@ -232,6 +239,17 @@ def encode_instruction(mnemonic: str, operands: list[str]) -> int:
 
         return ((opcode << 11) | (destination << 8) | (immediate_value))
 
+    if mnemonic == "BANK":
+        if len(operands) != 1:
+            raise ValueError(
+                f"{mnemonic} requires: Bank Number"
+            )
+        bank_number = parse_number(operands[0])
+
+        if not (0 <= bank_number <= 3):
+            raise ValueError(f"Bank value must be between 0 and 255")
+
+        return (((opcode << 11)) | bank_number)
     # -----------------------------------------------------------------------------------
     # MOV format:
     # [15:11] opcode | [10:8] Destination | [7:5] SourceA | [4:0] Extra
@@ -250,19 +268,30 @@ def encode_instruction(mnemonic: str, operands: list[str]) -> int:
         return (opcode << 11) | (destination << 8) | (source_a << 5)
 
     # -----------------------------------------------------------------------------------
-    # LOAD and STORE format:
+    # LOAD, LOADR, and STORE format:
+    # LOAD AND STORE:
     # [15:11] opcode | [10:8] Register | [7:0] Memory Address
+    # LOADR
+    # [15:11] opcode | [10:8] Register | [7:5] Source Register | [4:0] Extra
     # Example: LOAD R2, 30      STORE R2, 48
     #-------------------------------------------------------------------------------------
 
-    if mnemonic in {"LOAD", "STORE"}:
+    if mnemonic in {"LOAD", "STORE"} or mnemonic == "LOADR":
         if len(operands) != 2:
             raise ValueError(
-                f"{mnemonic} requires: register, memory address"
+                f"{mnemonic} requires: register, memory address / register"
             )
 
-        register = parse_register(operands[0])
-        memory_address = parse_number(operands[1])
+        if mnemonic == "LOADR":
+            # For LOADR, the second operand is a register instead of a memory address
+            register = parse_register(operands[0])
+            source_register = parse_register(operands[1])
+
+            return (opcode << 11) | (register << 8) | (source_register << 5)
+
+        else:
+            register = parse_register(operands[0])
+            memory_address = parse_number(operands[1])
 
         if not (0 <= memory_address <= 255):
             raise ValueError(f"Memory address must be between 0 and 255")
@@ -348,21 +377,82 @@ def assemble_file(input_path: Path, output_path: Path) -> None:
     # ========================= PASS 1: Find all labels ==========================
 
     instruction_address = 0
-    # To be finished
 
+    # Iterate through each line with its line number
+    for line_number, source_line in enumerate(source_lines, start=1):
+        line = clean_line(source_line)
 
+        # Ignore blank/comment lines
+        if not line:
+            continue
 
+        # If line ends in ":" then it is a label
+        if is_label(line):
+            # Remove the colon and store label
+            label = line[:-1].upper()
 
+            if not label:
+                raise ValueError(f"Error on line {line_number}: Label name cannot be empty.")
+
+            # Prevent same labels
+            if label in labels:
+                raise ValueError(f"Error on line {line_number}: Duplicate label: {label}")
+
+            # The label points to the NEXT instruction.
+            labels[label] = instruction_address
+
+            # Labels themselves do NOT take an instruction slot.
+            # dont increment for labels
+            continue
+
+        # Increment instruction address for each instruction line
+        instruction_address += 1
+
+    # Make sure program fits instide the 256 bytes of RAM
+    if instruction_address > 256:
+        raise ValueError(f"Error on line {line_number}: Program exceeds 256 bytes of RAM.")
+
+    # Print labels
+    print("\nLabels found:")
+    for label_name, label_address in labels.items():
+        print(f"{label_name}: {label_address}")
+
+    print()
 
     # ======================== PASS 2: Assemble instructions ==========================
+    
+    instruction_address = 0
+
     for line_number, source_line in enumerate(source_lines, start=1):
+        line = clean_line(source_line)
+
+        # Ignore blank/comment lines
+        if not line:
+            continue
+
+        # Labels were handled in PASS 1
+        # do not generate a machine code
+        if is_label(line):
+            continue
+
         parsed = parse_line(source_line)
 
         if parsed is None:
             continue # Ignore empty lines
 
-        # Parse the line into a mnemonic and operands
         mnemonic, operands = parsed
+
+        # Replace labels with ADDRESS
+        # Only branch type instructions and CALL use labels
+
+        if mnemonic in B_TYPE or mnemonic == "CALL":
+            if len(operands) == 1:
+                target = operands[0].strip().upper()
+
+                # If operand matches a known label, replace it 
+                # with the corresponding instruction a3ddress
+                if target in labels:
+                    operands[0] = str(labels[target])
 
         try:
             machine_code = encode_instruction(mnemonic, operands)
@@ -374,9 +464,13 @@ def assemble_file(input_path: Path, output_path: Path) -> None:
 
         # Print the line number, source line, and binary instruction in a formatted manner
         print(
-            f"{line_number:}: "
-            f"{source_line:} -> {binary_instruction}"
+            f"{instruction_address:03}: "
+            f"{source_line.strip()}: "
+            f"{binary_instruction}"
         )
+        instruction_address += 1
+
+    # WRITE TO program.mem FILE IN VIVADO SOURCE FOLDER
 
     output_path.write_text("\n".join(output_lines), encoding="utf-8") 
     # Write the output file with utf-8 encoding
@@ -394,7 +488,8 @@ def choose_program(assembler_folder: Path) -> Path:
     print("FPGA 8-Bit Assembler - Choose a program to assemble:")
     print("=" * 53)
     print("1. Calculator")
-    print("2. Snake Game")
+    print("2. Reaction Time Game")
+    print("3. UART Advanced Calculator")
     print()
 
     choice = input("Choose a program: ")
@@ -403,13 +498,15 @@ def choose_program(assembler_folder: Path) -> Path:
         input_path = assembler_folder / "calculator.asm"
 
     elif choice == "2":
-        input_path = assembler_folder / "snake.asm"
+        input_path = assembler_folder / "reaction_time_game.asm"
+
+    elif choice == "3":
+        input_path = assembler_folder / "uart_calculator.asm"
 
     else:
-        raise ValueError("Invalid selection. Please enter 1 or 2.")
+        raise ValueError("Invalid selection. Please enter 1, 2, or 3.")
 
     return input_path
-
 
 
 def main() -> None:

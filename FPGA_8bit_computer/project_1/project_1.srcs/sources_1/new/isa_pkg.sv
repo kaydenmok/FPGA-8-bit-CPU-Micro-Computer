@@ -48,6 +48,11 @@ package isa_pkg;
         OP_POP   = 5'b11001,
         
         OP_CALL  = 5'b11010,
-        OP_RET   = 5'b11011;
+        OP_RET   = 5'b11011,
+        
+        OP_LOADR = 5'b11100,
+        
+        OP_BANK  = 5'b11110;
+        
 
 endpackage

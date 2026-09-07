@@ -146,6 +146,10 @@ module cpu_core(
     
     logic [7:0] memory_write_data;
     
+    logic       register_pointer_taken;
+    
+    logic       bank_write_enable;
+    logic [1:0] bank_select;
     // ============================= IO CONTROLLER SIGNALS ================================
     
     logic       io_selected;
@@ -231,9 +235,11 @@ module cpu_core(
     assign io_write_enable  = memory_write_enable && io_selected; 
     
     
-    // Data RAM can be accessed in two ways:
+    // Data RAM can be accessed in three ways:
     // 1. Normal instructions (LOAD/STORE), use the address encoded in the instruction
     // 2. Stack instructions (PUSH/POP), use the current Stack Pointer instead.
+    // 3. Register pointer (LOADR), use the register value as a pointer to memory.
+    
     // This multiplexer selects which address is sent to Data RAM
     // Additionally POP must take from the address: current stack pointer + 1 
     always_comb begin
@@ -250,7 +256,11 @@ module cpu_core(
             else if (stack_increment_enable) begin
                 memory_address = stack_address + 8'd1;
             end
-            
+        end
+        
+        // Use the register value as a pointer to the memory
+        else if (register_pointer_taken) begin
+                memory_address = source_a_data;
         end
     end
     
@@ -278,7 +288,18 @@ module cpu_core(
     end
     // Jump to a address when branch_taken OR ret_enable are HIGH
     assign pc_load_enable = branch_taken || ret_enable;
- 
+    
+    
+    // BANKING 
+    // If reset enable, set BANK to 0, otherwise, use the immediate bank value
+    always_ff @(posedge clk) begin
+        if (reset) begin 
+            bank_select <= 2'b00;
+        end
+        else if (bank_write_enable) begin
+            bank_select <= address_or_immediate[1:0];
+        end
+    end
     // =============================== DEBUG OUTPUTS  ====================================
     
     // These outputs do not affect CPU operation, they expose useful internnal values 
@@ -346,11 +367,13 @@ module cpu_core(
         .writeback_external    (writeback_external),
         .branch_taken          (branch_taken),
         .halt                  (halt),
+        .register_pointer_taken(register_pointer_taken),
         .memory_write_enable   (memory_write_enable),
         .memory_read_enable    (memory_read_enable),
         .stack_address_select  (stack_address_select),
         .stack_decrement_enable(stack_decrement_enable),
         .stack_increment_enable(stack_increment_enable),
+        .bank_write_enable     (bank_write_enable),
         .call_enable           (call_enable),
         .ret_enable            (ret_enable)
     );
@@ -384,6 +407,7 @@ module cpu_core(
         .write_data   (memory_write_data),
 
         .write_enable (ram_write_enable),
+        .bank_select  (bank_select),
         
     // LOAD receives the value stored at the selected address.
         .read_data    (memory_read_data)

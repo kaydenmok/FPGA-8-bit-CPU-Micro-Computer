@@ -465,7 +465,7 @@ initial begin
         dut.data_memory_unit.memory[20] == 8'd42,
         "POP successfully restored 42 into R1"
     );
-    */
+    
     // ============================================================
     // FULL CPU CALL + RET TEST
     // ============================================================
@@ -742,4 +742,332 @@ end
         $finish;
      end
     
+endmodule
+
+*/
+
+
+// ============================================================
+// FULL CPU BANKING TEST
+// ============================================================
+
+initial begin
+
+    // --------------------------------------------------------
+    // RESET CPU
+    // --------------------------------------------------------
+
+    reset = 1'b1;
+
+    repeat (2) @(posedge clk);
+
+    @(negedge clk);
+    reset = 1'b0;
+
+    #1;
+
+
+    // ========================================================
+    // PC = 0
+    // BANK 0
+    // ========================================================
+
+    check(
+        debug_pc == 8'd0,
+        "PC starts at address 0"
+    );
+
+    check(
+        dut.bank_write_enable == 1'b1,
+        "BANK instruction enables bank register writing"
+    );
+
+    // Execute BANK 0
+    @(posedge clk);
+    #1;
+
+    check(
+        dut.bank_select == 2'd0,
+        "BANK 0 selects memory bank 0"
+    );
+
+
+    // ========================================================
+    // PC = 1
+    // LOADI R1, 55
+    // ========================================================
+
+    check(
+        debug_pc == 8'd1,
+        "PC increments to LOADI R1, 55"
+    );
+
+    check(
+        dut.destination_addr == 3'd1,
+        "LOADI selects R1"
+    );
+
+    // Execute LOADI
+    @(posedge clk);
+    #1;
+
+    check(
+        dut.datapath_unit.register_file_instance.registers[1] == 8'd55,
+        "R1 receives value 55"
+    );
+
+
+    // ========================================================
+    // PC = 2
+    // STORE R1, 50
+    // Bank 0 address 50
+    // ========================================================
+
+    check(
+        debug_pc == 8'd2,
+        "PC increments to first STORE"
+    );
+
+    check(
+        dut.bank_select == 2'd0,
+        "Bank 0 is still selected"
+    );
+
+    check(
+        dut.memory_write_enable == 1'b1,
+        "STORE enables memory writing"
+    );
+
+    check(
+        debug_source_a_data == 8'd55,
+        "STORE reads value 55 from R1"
+    );
+
+    // Execute STORE
+    @(posedge clk);
+    #1;
+
+
+    // ========================================================
+    // PC = 3
+    // BANK 1
+    // ========================================================
+
+    check(
+        debug_pc == 8'd3,
+        "PC increments to BANK 1"
+    );
+
+    check(
+        dut.bank_write_enable == 1'b1,
+        "BANK 1 enables bank register writing"
+    );
+
+    // Execute BANK 1
+    @(posedge clk);
+    #1;
+
+    check(
+        dut.bank_select == 2'd1,
+        "BANK 1 selects memory bank 1"
+    );
+
+
+    // ========================================================
+    // PC = 4
+    // LOADI R1, 99
+    // ========================================================
+
+    check(
+        debug_pc == 8'd4,
+        "PC increments to LOADI R1, 99"
+    );
+
+    // Execute LOADI
+    @(posedge clk);
+    #1;
+
+    check(
+        dut.datapath_unit.register_file_instance.registers[1] == 8'd99,
+        "R1 receives value 99"
+    );
+
+
+    // ========================================================
+    // PC = 5
+    // STORE R1, 50
+    // Bank 1 address 50
+    // ========================================================
+
+    check(
+        debug_pc == 8'd5,
+        "PC increments to second STORE"
+    );
+
+    check(
+        dut.bank_select == 2'd1,
+        "Bank 1 is selected for second STORE"
+    );
+
+    check(
+        debug_source_a_data == 8'd99,
+        "STORE reads value 99 from R1"
+    );
+
+    // Execute STORE
+    @(posedge clk);
+    #1;
+
+
+    // ========================================================
+    // PC = 6
+    // BANK 0
+    // ========================================================
+
+    check(
+        debug_pc == 8'd6,
+        "PC increments to BANK 0"
+    );
+
+    // Execute BANK 0
+    @(posedge clk);
+    #1;
+
+    check(
+        dut.bank_select == 2'd0,
+        "CPU switches back to bank 0"
+    );
+
+
+    // ========================================================
+    // PC = 7
+    // LOAD R2, 50
+    // Should retrieve 55 from BANK 0
+    // ========================================================
+
+    check(
+        debug_pc == 8'd7,
+        "PC increments to LOAD R2, 50"
+    );
+
+    check(
+        dut.memory_read_enable == 1'b1,
+        "LOAD enables memory reading"
+    );
+
+    check(
+        dut.memory_read_data == 8'd55,
+        "Bank 0 address 50 contains 55"
+    );
+
+    // Execute LOAD
+    @(posedge clk);
+    #1;
+
+    check(
+        dut.datapath_unit.register_file_instance.registers[2] == 8'd55,
+        "R2 receives 55 from bank 0"
+    );
+
+
+    // ========================================================
+    // PC = 8
+    // BANK 1
+    // ========================================================
+
+    check(
+        debug_pc == 8'd8,
+        "PC increments to BANK 1"
+    );
+
+    // Execute BANK 1
+    @(posedge clk);
+    #1;
+
+    check(
+        dut.bank_select == 2'd1,
+        "CPU switches back to bank 1"
+    );
+
+
+    // ========================================================
+    // PC = 9
+    // LOAD R3, 50
+    // Should retrieve 99 from BANK 1
+    // ========================================================
+
+    check(
+        debug_pc == 8'd9,
+        "PC increments to LOAD R3, 50"
+    );
+
+    check(
+        dut.memory_read_enable == 1'b1,
+        "Second LOAD enables memory reading"
+    );
+
+    check(
+        dut.memory_read_data == 8'd99,
+        "Bank 1 address 50 contains 99"
+    );
+
+    // Execute LOAD
+    @(posedge clk);
+    #1;
+
+    check(
+        dut.datapath_unit.register_file_instance.registers[3] == 8'd99,
+        "R3 receives 99 from bank 1"
+    );
+
+
+    // ========================================================
+    // PC = 10
+    // HALT
+    // ========================================================
+
+    check(
+        debug_pc == 8'd10,
+        "PC reaches HALT instruction"
+    );
+
+    check(
+        halt == 1'b1,
+        "HALT becomes active"
+    );
+
+
+    // ========================================================
+    // FINAL RESULT CHECK
+    // ========================================================
+
+    check(
+        dut.datapath_unit.register_file_instance.registers[2] == 8'd55,
+        "FINAL: Bank 0 preserved value 55"
+    );
+
+    check(
+        dut.datapath_unit.register_file_instance.registers[3] == 8'd99,
+        "FINAL: Bank 1 preserved value 99"
+    );
+
+
+    // Make sure HALT freezes PC
+    repeat (3) @(posedge clk);
+    #1;
+
+    check(
+        debug_pc == 8'd10,
+        "PC remains frozen after HALT"
+    );
+
+
+    $display("");
+    $display("======================================");
+    $display("       ALL BANKING TESTS PASSED");
+    $display("======================================");
+    $display("");
+
+    $finish;
+end
 endmodule

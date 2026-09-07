@@ -38,6 +38,9 @@ module control_unit(
     // Tells the PC whether to load the branch address.
     output logic       branch_taken,
     
+    // Used for LOADR when a register determines address
+    output logic       register_pointer_taken,
+    
     // Allows arithmetic and logic instructions to update the stored flags.
     // Branch, memory, and immediate instructions should normally leave the existing flags unchanged.
     output logic       flag_write_enable,
@@ -53,6 +56,9 @@ module control_unit(
     output logic       stack_decrement_enable,
     output logic       stack_increment_enable,
     output logic       stack_address_select,
+    
+    // Banking control outputs
+    output logic       bank_write_enable,
     
     // Call and Return outputs
     output logic       call_enable,
@@ -73,10 +79,13 @@ module control_unit(
         memory_write_enable     = 1'b0;
         memory_read_enable      = 1'b0;
         flag_write_enable       = 1'b0;
+        register_pointer_taken  = 1'b0;
         
         stack_address_select    = 1'b0;
         stack_decrement_enable  = 1'b0;
         stack_increment_enable  = 1'b0;
+        
+        bank_write_enable       = 1'b0;
         
         call_enable             = 1'b0;
         ret_enable              = 1'b0;
@@ -245,8 +254,23 @@ module control_unit(
                 ret_enable            = 1'b1;
                 register_write_enable = 1'b0;
             end
-           
             
+            5'b11100: begin // LOADR
+                // LOADR uses the value stored in a register as a pointer to memory
+                // instead of using an immediate address. 
+                register_pointer_taken = 1'b1;
+                register_write_enable  = 1'b1;
+                writeback_external     = 1'b1;
+                
+                memory_read_enable     = 1'b1;
+                memory_write_enable    = 1'b0;
+            end
+            
+            5'b11110: begin // BANK
+                // Bank takes an address value between 0-3 and changes the accessible memory to a the selected number
+                // This allows for more RAM storage while still only being able to access numbers 0-255. 
+                bank_write_enable      = 1'b1;
+            end
             
             default: begin
                 // Unimplemented or invalid opcode

@@ -33,7 +33,9 @@ module instruction_decoder(
     // The opcode is stored in the upper five instruction bits.
     assign opcode = instruction[15:11];
     
-    // These fields are useful for R-Type and U-Type instructions.
+    // Register fields used by instructions that reference CPU registers.
+    // destination_addr selects the destination register.
+    // source_a_addr and source_b_addr select source registers.
     assign destination_addr = instruction[10:8];
     
     // STORE has its own format where bits [10:8] are for source_a_addr
@@ -46,7 +48,7 @@ module instruction_decoder(
     // These lower eight bits are interpreted according to the opcode:
     // - memory address for LOAD and STORE
     // - immediate value for LOADI
-    // - port number for IN and OUT
+    
     assign address_or_immediate = instruction[7:0];
     
     // Branch Instruction store their target address in bits 
