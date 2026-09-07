@@ -251,3 +251,7 @@ Possible future development will focus on expanding the system with:
 * VGA video output
 * Graphics-oriented memory and I/O
 * VGA-based applications and games
+
+# Author
+
+Kayden Mokrytzki University of Guelph Computer Engineering Student
