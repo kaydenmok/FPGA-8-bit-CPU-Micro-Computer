@@ -20,6 +20,10 @@ module seven_segment_display(
     input logic       clk,
     input logic       reset,
     
+    // 0 - Hexadecimal
+    // 1 - Timer
+    input logic       display_mode,
+    
     // 8bit value written by the CPU 
     input logic [7:0] value,
     
@@ -29,7 +33,10 @@ module seven_segment_display(
     
     // Digit enables for the four display digits
     // Anode (+) to choose each digit an3, an2, an1, an0
-    output logic [3:0] an
+    output logic [3:0] an,
+    
+    // Decimal Point output
+    output logic       dp
     );
     
     // Counter used to slow the 100 MHz FPGA clock down enough
@@ -41,6 +48,16 @@ module seven_segment_display(
     
     // Four bit value currently being converted to a hex digit
     logic [3:0]        current_digit;
+    
+    logic [3:0] seconds_ones;
+    logic [3:0] seconds_tens;
+    logic [3:0] tenths;
+
+    always_comb begin
+        seconds_tens = (value / 100) % 10;
+        seconds_ones = (value / 10) % 10;
+        tenths       = value % 10;
+    end
     
     // ============================== REFRESH COUNTER ====================================
     
@@ -63,9 +80,13 @@ module seven_segment_display(
         // Safe defaults 
         an            = 4'b1111;
         current_digit = 4'h0;
+        dp            = 1'b1;  // Active low: 1 = OFF
+        
+        if (display_mode == 1'b0) begin
+        // =================== HEX MODE =======================
+        // 8'hAC -> 00AC
         
         case (digit_select)
-            // First digit
             2'b00: begin
                 an            = 4'b1110;
                 current_digit = value[3:0];
@@ -95,6 +116,47 @@ module seven_segment_display(
             end
         endcase
      end
+     
+     else begin
+        // ================== TIMER MODE =======================
+        // value = number of tenths of a second
+        // Example: value = 24 - > 2.4 seconds
+        
+        case (digit_select)
+            // Tenths
+            2'b00: begin
+                an            = 4'b1110;
+                current_digit = tenths;
+            end
+            
+            // Seconds tens digit
+            2'b01: begin
+                an            = 4'b1101;
+                current_digit = seconds_ones;
+                dp            = 1'b0; // Decimal point ON
+            end
+            
+            // Seconds tens digit
+            2'b10: begin
+                an            = 4'b1011;
+                current_digit = seconds_tens;
+            end
+
+            // Leftmost digit unused
+            2'b11: begin
+                an            = 4'b0111;
+                current_digit = 4'h0;
+            end
+
+            default: begin
+                an            = 4'b1111;
+                current_digit = 4'h0;
+                dp            = 1'b1;
+            end
+        endcase
+    end
+end
+         
      
      // ============================== DIGIT SELECTION ====================================
      

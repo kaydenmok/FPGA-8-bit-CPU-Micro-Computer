@@ -88,6 +88,7 @@ module cpu_core(
     
     // Seven Segment Display
     output logic [7:0]  display_value,
+    output logic        display_mode,
     
     // Debug outputs make simulation and later board testing easier.
     output logic        halt,
@@ -442,6 +443,7 @@ module cpu_core(
 
     // Seven-segment
     .display_value  (display_value),
+    .display_mode   (display_mode),
 
     // UART outputs
     .uart_tx_data   (uart_tx_data),

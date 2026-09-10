@@ -108,6 +108,9 @@ set_property IOSTANDARD LVCMOS33 [get_ports {an[2]}]
 set_property PACKAGE_PIN W4 [get_ports {an[3]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {an[3]}]
 
+## Seven-segment decimal point
+set_property PACKAGE_PIN V7 [get_ports dp]
+set_property IOSTANDARD LVCMOS33 [get_ports dp]
 
 ## UART ##
 # PC -> FPGA

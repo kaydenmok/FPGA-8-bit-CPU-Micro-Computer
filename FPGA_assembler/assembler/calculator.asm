@@ -1,4 +1,7 @@
-; MAIN_LOOP - Address 0
+LOADI R0, 0
+STORE R0, 249   ; Hex mode for 7 segment display
+
+MAIN_LOOP:
 LOAD R0, 243 ; Load Switch Value A
 LOAD R1, 242 ; Load Switch Value B
 
@@ -12,38 +15,38 @@ LOAD R4, 244 ; Load Button Value
     ; btn[0] = btnU , btn[1] = btnD, btn[2] = btnL, btn[3] = btnR
 
 AND R3, R5, R4 ; See if btnU is pressed for ADD
-JNZ 16
+JNZ ADD_CALL
 AND R3, R6, R4 ; See if btnD is pressed for SUBTRACT
-JNZ 20
+JNZ SUB_CALL
 AND R3, R7, R4 ; See if btnL is pressed for AND
-JNZ 24
+JNZ AND_CALL
 
 LOADI R7, 8 
 AND R3, R7, R4 ; See if btnR is pressed for OR
-JNZ 28
+JNZ OR_CALL
 
-JMP 0
+JMP MAIN_LOOP
     
-; ADD VALUES - Address 16
+ADD_CALL: 
 ADD R2, R0, R1
 STORE R2, 240
 STORE R2, 245
-JMP 0  
+JMP MAIN_LOOP
 
-; SUBTRACT VALUES - Address 20
+SUB_CALL:
 SUB R2, R0, R1
 STORE R2, 240
 STORE R2, 245
-JMP 0
+JMP MAIN_LOOP
 
-; AND VALUES - Address 24
+AND_CALL:
 AND R2, R0, R1
 STORE R2, 240
 STORE R2, 245
-JMP 0
+JMP MAIN_LOOP
 
-; OR VALUES - Address 28
+OR_CALL:
 OR R2, R0, R1
 STORE R2, 240
 STORE R2, 245
-JMP 0
+JMP MAIN_LOOP

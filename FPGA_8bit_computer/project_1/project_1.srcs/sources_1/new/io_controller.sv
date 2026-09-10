@@ -26,6 +26,9 @@
 // 0xF7 : UART Status
 // 0xF8 : UART Receiver
 //
+// 0xF9 : 7-Segment Display Mode
+//          0 -> Hex    1 -> Timer
+//
 // EXAMPLES:
 // STORE R1, 0xF0 -----> LEDs 7-0 Shine the value of R1
 //
@@ -63,13 +66,14 @@ module io_controller(
     
     // 7-segment display
     output logic [7:0] display_value,
+    output logic       display_mode,
     
     // UART outputs
     output logic [7:0] uart_tx_data,
     output logic       uart_tx_start
     );
     
-    // INTERNAL SIGNALS
+    // ======== INTERNAL SIGNALS =========
     
     // UART receiver FIFO 
     // The fifo can hold up to 8 received bytes.
@@ -108,9 +112,10 @@ module io_controller(
         if (reset) begin
             leds          <= 16'b0;
             display_value <= 8'b0;
+            display_mode  <= 1'b0;
             
             uart_tx_data  <= 8'b0;
-            uart_tx_start <= 1'b0;
+            uart_tx_start <= 1'b0; 
         end
         
         // UART should normally stay LOW
@@ -135,6 +140,13 @@ module io_controller(
                 // 7-Segment Display
                 8'hF5: begin
                     display_value <= write_data;
+                end
+                
+                // 7-Segment Display Mode
+                // 0 = HEX mode
+                // 1 = TIMER mode
+                8'hF9: begin
+                    display_mode <= write_data[0];
                 end
                 
                 // UART transmitter

@@ -210,22 +210,13 @@ The complete computer was then synthesized and deployed to the Basys 3 FPGA for 
 
 ## Documentation
 
-Additional documentation provides a deeper technical explanation of the project.
+Additional documentation provides a deeper technical explanation of the project. These files can be found under the [`docs/`](docs/) folder.
 
-* **CPU Architecture & Design**
-  Detailed explanation of the CPU datapath, control unit, ALU, register file, Program Counter, memory system, stack, peripherals, UART, assembler workflow, and verification strategy.
+- **Architecture & Design Breakdown** — Detailed explanation of the CPU architecture, major components, memory system, peripherals, and how the system operates.
 
-  TO BE INSERTED HERE
+- **Custom 8-Bit CPU Instruction Set Architecture** — Complete reference for the custom instruction set, including opcodes, instruction formats, assembly syntax, operations, and 16-bit instruction encoding.
 
-* **Instruction Set Architecture Reference**
-  Complete ISA reference including instruction formats, opcodes, operands, instruction encoding, descriptions, flags, and examples.
-
-  TO BE INSERTED HERE
-
-* **Demo Documentation**
-  Detailed documentation for each system demo, including controls, commands, program flow, screenshots, terminal output, and the hardware features exercised.
-  
-  TO BE INSERTED HERE
+- **FPGA I/O Memory Map** — Reference for the computer's memory-mapped I/O addresses, including LEDs, switches, pushbuttons, 7-segment display, UART, shared memory, and global stack region.
 
 ---
 

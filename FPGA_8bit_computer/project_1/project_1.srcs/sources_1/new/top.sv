@@ -34,7 +34,8 @@ module top(
     
     output logic [15:0] led,
     output logic [6:0]  seg,
-    output logic [3:0]  an
+    output logic [3:0]  an,
+    output logic        dp
     );
     
     // ========================== INTERNAL SIGNALS =================================
@@ -45,6 +46,7 @@ module top(
     logic [3:0] buttons;
     
     logic [7:0] display_value;
+    logic       display_mode;
     
     // Debug signals from cpu_core outputs 
     logic        halt;
@@ -75,7 +77,7 @@ module top(
     
     // Same format from io_controller
     
-    // assign buttons[0] = btnC; // Reserved for reset
+    // btnC reserved for reset
     assign buttons[0] = btnU;
     assign buttons[1] = btnD;
     assign buttons[2] = btnL;
@@ -101,6 +103,7 @@ module top(
         // Physical FPGA output
         .leds                (led),
         .display_value       (display_value),
+        .display_mode        (display_mode),
 
         // Debug outputs
         .halt                (halt),
@@ -123,11 +126,13 @@ module top(
     );
     // ============================ 7SEG DISPLAY ====================================
     seven_segment_display display_unit (
-        .clk   (clk),
-        .reset (reset),
-        .value (display_value),
-        .seg   (seg),
-        .an    (an)
+        .clk          (clk),
+        .reset        (reset),
+        .value        (display_value),
+        .display_mode (display_mode),
+        .seg          (seg),
+        .an           (an),
+        .dp           (dp)
     );
         
         
