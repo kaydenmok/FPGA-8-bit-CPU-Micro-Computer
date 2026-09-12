@@ -118,42 +118,51 @@ module seven_segment_display(
      end
      
      else begin
-        // ================== TIMER MODE =======================
-        // value = number of tenths of a second
-        // Example: value = 24 - > 2.4 seconds
-        
-        case (digit_select)
-            // Tenths
-            2'b00: begin
-                an            = 4'b1110;
-                current_digit = tenths;
+    // ================== TIMER MODE =======================
+    // value = number of tenths of a second
+    //
+    // Example:
+    // value = 24 -> 2.4 seconds
+    // value = 135 -> 13.5 seconds
+
+    case (digit_select)
+
+        // Tenths digit
+        2'b00: begin
+            an            = 4'b1110;
+            current_digit = tenths;
+        end
+
+        // Seconds ones digit
+        // Decimal point is placed after this digit
+        2'b01: begin
+            an            = 4'b1101;
+            current_digit = seconds_ones;
+            dp            = 1'b0;
+        end
+
+        // Seconds tens digit
+        2'b10: begin
+            if (seconds_tens == 0) begin
+                an = 4'b1111; // Blank leading zero
             end
-            
-            // Seconds tens digit
-            2'b01: begin
-                an            = 4'b1101;
-                current_digit = seconds_ones;
-                dp            = 1'b0; // Decimal point ON
-            end
-            
-            // Seconds tens digit
-            2'b10: begin
+            else begin
                 an            = 4'b1011;
                 current_digit = seconds_tens;
             end
+        end
 
-            // Leftmost digit unused
-            2'b11: begin
-                an            = 4'b0111;
-                current_digit = 4'h0;
-            end
+        // Leftmost digit unused
+        2'b11: begin
+            an = 4'b1111;
+        end
 
-            default: begin
-                an            = 4'b1111;
-                current_digit = 4'h0;
-                dp            = 1'b1;
-            end
-        endcase
+        default: begin
+            an = 4'b1111;
+            dp = 1'b1;
+        end
+
+    endcase
     end
 end
          

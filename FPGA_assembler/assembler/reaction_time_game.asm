@@ -1,22 +1,11 @@
 START:
     LOADI R0, 1
+    STORE R0, 249      ; Set 7-segment display to timer mode
+
+    LOADI R0, 1
     STORE R0, 240      ; LED0 = test started
 
-    LOADI R6, 3
-
-DEC_TEST:
-    DEC R6, R6
-    JZ DEC_FINISHED
-    JMP DEC_TEST
-
-DEC_FINISHED:
-    LOADI R0, 255
-    STORE R0, 240      ; All LEDs = DEC/JZ worked
-
-HOLD:
-    JMP HOLD
-    
-JMP RANDOM_LED_START
+    JMP RANDOM_LED_START
 
 ; ============================ FUNCTIONS ===============================
 DELAY: ; Delays for a certain number of clock cycles to count time in ms
@@ -76,6 +65,7 @@ TIME_START:
     POP R6        ; Restore R6
 
     DEC R6, R6
+    SUB R3, R6, R4   
     JNZ TIME_100MS_LOOP ; Loop until 100 ms have passed
 
     ; Approximately 100 ms have passed
@@ -137,7 +127,10 @@ RANDOM_LED_START: ; Push buttonU to start and then wait N time for leds to turn 
     CALL DELAY
     CALL DELAY ; 12 ms total
 
-    DEC R7, R7 ; Decrement the random value
+    DEC R7, R7
+
+    LOADI R4, 0
+    SUB R3, R7, R4    ; Update flags based on R7
     JZ RANDOM_LED_DONE
 
     JMP RANDOM_DELAY_WAIT ; Keep waiting until the random value is 0
